@@ -15,6 +15,8 @@ class Agent:
         self.epsilon = 0 # randomness
         self.gamma = 0 # discount rate
         self.memmory=deque(maxlen=MAX_MEMORY) # popleft()
+        self.model = None #TODO
+        self.trainer = None #TODO
         # TODO: model, trainer
 
     def get_state(self, game):
@@ -62,16 +64,36 @@ class Agent:
             ]
 
     def remember(self, satate, action, reward, next_state, done):
-        pass
+        self.memmory.append((satate, action, reward, next_state, done)) #popleft is MAX_MEMORY  is rech
 
     def train_long_memory(self):
-        pass
+        if len(self.memmory) < BATCH_SIZE:
+            mini_sample = random.sample(self.memmory, BATCH_SIZE) # listt od tuples
+        else:
+            mini_sample = self.memmory
 
-    def train_short_memory(self):
-        pass
+        satates, actions, rewards, next_states, dones = zip(*mini_sample)
+        self.trainer.train_setp(satates, actions, rewards, next_states, dones)
+        #for satate, action, reward, next_state, done in mini_sample:
+        #  self.trainer.train_step(state, action, reward, next_state, done)    
+
+    def train_short_memory(self,satate, action, reward, next_state, done):
+        self.trainer.train_setp(satate, action, reward, next_state, done)
 
     def get_action(self, state):
-        pass
+        #random moves: tradeoff exploration / exploitation
+        self.epsilon = 80 - self.n_games
+        final_move = [0,0,0]
+        if random.randint(0, 200) < self.epsilon:
+            move = random.randint(0,2)
+            final_move[move] = 1
+        else:
+            state0 = torch.tensor(state, dtype=torch.float)
+            prediction = self.model.predict(state0)
+            move = torch.argmax(prediction).item()
+            final_move[move] = 1
+        
+        return final_move
 
 def train():
     plot_scores = []
